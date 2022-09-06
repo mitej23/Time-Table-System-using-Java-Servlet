@@ -13,6 +13,7 @@ import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.RequestDispatcher;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -64,6 +65,21 @@ public class HomeServlet extends HttpServlet {
         response.setContentType("text/html;charset=UTF-8");
         PrintWriter out = response.getWriter();
         
+        
+        // Check if user cookie is present else reirect to login page
+        boolean userCookie = false;
+        Cookie [] ck = request.getCookies();
+        for(int i = 0;ck!=null&&i < ck.length;i++){
+            if(ck[i].getName().equals("user")){
+                userCookie = true;
+            }
+        }
+        
+        if(!userCookie){
+            response.sendRedirect("LoginServlet");
+            out.close();
+            return;
+        }
         
         out.println("<html>");
         out.println("<head><title>Time Table Management System</title><style>body {margin: 4rem;}table {border: 1px solid black;border-spacing: 0px;}tr,th, td {font-size: 1.25rem;padding: 10px;}thead th,tbody tr th {border-bottom: 1px solid black;border-right: 1px solid black;color: white;background: #1865ad;}td {text-align: center;vertical-align: middle;border-right: 0.5px solid grey;border-bottom: 0.5px solid grey;}.container {display: flex;}form {margin-left: 3rem;display: flex;flex-direction: column;}input,select {font-size: 1rem;padding: 5px;margin-top: 5px;margin-bottom: 10px;}input[type=\"submit\"],input[type=\"reset\"] {background: #1865ad;color: white;border: none;padding: 8px;}</style></head>");
@@ -152,12 +168,37 @@ public class HomeServlet extends HttpServlet {
                 stmt.execute(sql);
             }else{
                 Statement stmt = con.createStatement();
-                String sql = "update timetable set subject = \""+ subject + "\" where tablerow = " + time + " and tablecol = " + day;
-                stmt.executeUpdate(sql);
+                // if subject is "" empty check if user is admin 
+                int subLen = result.getString(1).length();
+                boolean empty = false;
+                if(subLen == 0){
+                    empty = true;
+                }
+                if(empty){
+                    out.print("Empty");
+                }else{
+
+                    Cookie [] ck = request.getCookies();
+                    for(int i = 0;ck!=null&&i < ck.length;i++){
+                        if(ck[i].getName().equals("user")){
+                            String userType = ck[i].getValue();
+                            if(userType.equals("teacher")){
+                                out.println("<h1>Teachers are not allowed to overwrite a lecture</h1>");
+                            }else{
+                                String sql = "update timetable set subject = \""+ subject + "\" where tablerow = " + time + " and tablecol = " + day;
+                                stmt.executeUpdate(sql);
+                                doGet(request,response);
+                            }
+                        }
+                    }
+                }
+                     
+                
+//                
                 
             }
             
-            doGet(request,response);
+
             
             
             
